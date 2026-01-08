@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>World Time Zones</title>
+
+<style>
+:root{
+  --bg:#050b18;
+  --card:rgba(255,255,255,.08);
+  --text:#fff;
+  --accent:#00e5ff;
+}
+
+body{
+  margin:0;
+  font-family:Segoe UI, sans-serif;
+  background:radial-gradient(circle at top,#0a1a3a,#050b18);
+  color:var(--text);
+  min-height:100vh;
+}
+
+.light{
+  background:linear-gradient(to right,#e0eafc,#cfdef3);
+  color:#000;
+}
+
+/* COMMON */
+button,input{
+  padding:10px 16px;
+  border-radius:20px;
+  border:none;
+  cursor:pointer;
+}
+
+button{
+  background:var(--accent);
+  font-weight:bold;
+}
+
+/* PAGES */
+.page{
+  display:none;
+  padding:25px;
+}
+
+.page.active{
+  display:block;
+}
+
+/* HOME PAGE */
+.home{
+  text-align:center;
+  padding-top:80px;
+}
+
+.home h1{
+  font-size:3rem;
+  color:var(--accent);
+}
+
+.home p{
+  max-width:600px;
+  margin:20px auto;
+  opacity:.85;
+  line-height:1.6;
+}
+
+/* HEADER */
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+/* GRID */
+.grid{
+  margin-top:25px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:20px;
+}
+
+.card{
+  position:relative;
+  padding:20px;
+  border-radius:18px;
+  backdrop-filter:blur(10px);
+  background:var(--card);
+  border:1px solid rgba(255,255,255,.2);
+  transition:.3s;
+}
+
+.card:hover{
+  transform:translateY(-6px);
+}
+
+.star{
+  position:absolute;
+  top:12px;
+  right:14px;
+  cursor:pointer;
+  font-size:20px;
+}
+
+/* CLOCK */
+.clock{
+  width:90px;
+  height:90px;
+  border:3px solid var(--accent);
+  border-radius:50%;
+  margin:10px auto;
+  position:relative;
+}
+
+.hand{
+  position:absolute;
+  bottom:50%;
+  left:50%;
+  transform-origin:bottom;
+}
+
+.hour{height:25px;width:4px;background:var(--accent);}
+.minute{height:35px;width:3px;background:var(--accent);}
+.second{height:40px;width:2px;background:red;}
+
+.time{
+  text-align:center;
+  font-size:1.4rem;
+  color:var(--accent);
+}
+
+/* FOOTER */
+footer{
+  text-align:center;
+  margin-top:40px;
+  opacity:.6;
+}
+</style>
+</head>
+
+<body>
+
+<!-- HOME PAGE -->
+<section class="page home active" id="home">
+  <h1>🌍 World Time Zones</h1>
+  <p>
+    Explore live time across the globe with interactive clocks, favorites,
+    and a beautiful world-inspired interface.
+  </p>
+  <button onclick="goToApp()">Explore Time Zones ⏰</button>
+</section>
+
+<!-- APP PAGE -->
+<section class="page" id="app">
+  <header>
+    <h2>🌍 World Clocks</h2>
+    <div>
+      <input id="search" placeholder="Search city">
+      <button onclick="showFav()">⭐</button>
+      <button onclick="toggleTheme()">🌗</button>
+      <button onclick="goHome()">🏠</button>
+    </div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    Built by Sonixa • Global Time Experience
+  </footer>
+</section>
+
+<script>
+const cities=[
+  {name:"New York",zone:"America/New_York"},
+  {name:"London",zone:"Europe/London"},
+  {name:"Paris",zone:"Europe/Paris"},
+  {name:"Dubai",zone:"Asia/Dubai"},
+  {name:"Mumbai",zone:"Asia/Kolkata"},
+  {name:"Tokyo",zone:"Asia/Tokyo"},
+  {name:"Sydney",zone:"Australia/Sydney"}
+];
+
+let favorites=JSON.parse(localStorage.getItem("fav"))||[];
+let dark=true;
+
+function idSafe(z){return z.replaceAll("/","_");}
+
+function render(list){
+  grid.innerHTML="";
+  list.forEach(c=>{
+    const id=idSafe(c.zone);
+    const fav=favorites.includes(c.name)?"⭐":"☆";
+
+    grid.innerHTML+=`
+      <div class="card">
+        <div class="star" onclick="toggleFav('${c.name}')">${fav}</div>
+        <h3>${c.name}</h3>
+        <div class="clock">
+          <div class="hand hour" id="h_${id}"></div>
+          <div class="hand minute" id="m_${id}"></div>
+          <div class="hand second" id="s_${id}"></div>
+        </div>
+        <div class="time" id="t_${id}">--</div>
+      </div>`;
+  });
+}
+
+function update(){
+  cities.forEach(c=>{
+    const id=idSafe(c.zone);
+    const d=new Date(new Date().toLocaleString("en-US",{timeZone:c.zone}));
+
+    const t=document.getElementById(`t_${id}`);
+    if(t) t.textContent=d.toLocaleTimeString();
+
+    document.getElementById(`h_${id}`)?.style.setProperty(
+      "transform",`translateX(-50%) rotate(${(d.getHours()%12)*30+d.getMinutes()/2}deg)`
+    );
+    document.getElementById(`m_${id}`)?.style.setProperty(
+      "transform",`translateX(-50%) rotate(${d.getMinutes()*6}deg)`
+    );
+    document.getElementById(`s_${id}`)?.style.setProperty(
+      "transform",`translateX(-50%) rotate(${d.getSeconds()*6}deg)`
+    );
+  });
+}
+
+function toggleFav(name){
+  favorites=favorites.includes(name)
+    ?favorites.filter(f=>f!==name)
+    :[...favorites,name];
+  localStorage.setItem("fav",JSON.stringify(favorites));
+  render(cities);
+}
+
+function showFav(){
+  render(cities.filter(c=>favorites.includes(c.name)));
+}
+
+search.oninput=e=>{
+  const v=e.target.value.toLowerCase();
+  render(cities.filter(c=>c.name.toLowerCase().includes(v)));
+};
+
+function toggleTheme(){
+  dark=!dark;
+  document.body.classList.toggle("light",!dark);
+}
+
+/* NAVIGATION */
+function goToApp(){
+  home.classList.remove("active");
+  app.classList.add("active");
+}
+
+function goHome(){
+  app.classList.remove("active");
+  home.classList.add("active");
+}
+
+render(cities);
+update();
+setInterval(update,1000);
+</script>
+
+</body>
+</html>
